@@ -1,168 +1,32 @@
-
-const $ = s => document.querySelector(s);
-const $$ = s => [...document.querySelectorAll(s)];
-const todayKey = () => new Date().toISOString().slice(0,10);
-const store = {
-  get(k,d=null){ try{return JSON.parse(localStorage.getItem(k)) ?? d}catch{return d}},
-  set(k,v){localStorage.setItem(k,JSON.stringify(v))}
-};
-
-const missions = [
-  ["steps","10.000 stappen","Body"],
-  ["sleep","Minstens 6 uur slaap","Sleep"],
-  ["water","1 liter water","Glow"],
-  ["food","Homemade food","Body"],
-  ["movement","30–60 min bewegen","Body"],
-  ["post","Dagelijkse post","Create"],
-  ["business","Werk aan Out With It","Business"],
-  ["screen","Bewust met series/schermtijd","Mind"],
-  ["smoking","Roken bewust gelogd","Smoking"]
-];
-
-const lifeAreas = [
-  ["🏠","Home","Daily reset, laundry, deep clean"],
-  ["💪🏾","Body","Steps, movement, weight"],
-  ["💄","Beauty","Skill tree & lessons"],
-  ["👗","Style","Outfits, wishlist, wardrobe"],
-  ["✨","Grooming","Hair, nails, bodycare"],
-  ["🧴","Skin","AM, PM, SPF, glow"],
-  ["😴","Sleep","Duration, quality, energy"],
-  ["🧠","Mind","Journal, brain dump, identity"],
-  ["📚","Brain","Books, courses, Spanish"],
-  ["💰","Money","Spending, budget, goals"],
-  ["🏡","Future Home","Budget, areas, viewings"],
-  ["✈️","Career","Now, next, exit"],
-  ["💼","Out With It","Build something weekly"],
-  ["🌍","Life","Do, see, learn, travel"],
-  ["👩🏾‍👧","Motherhood","Quality time & structure"],
-  ["❤️","Relationships","Love, family, friends, boundaries"],
-  ["🎉","Fun","Purely enjoyable experiences"],
-  ["🌺","Identity","Who is Maya becoming?"]
-];
-
-function getToday(){
-  return store.get("day-"+todayKey(), {checks:{}, home:{}, energy:null, scoreSaved:false});
-}
-function saveToday(d){ store.set("day-"+todayKey(),d); render(); }
-
-function renderMissions(){
-  const d=getToday();
-  $("#missions").innerHTML=missions.map(([id,title,sub])=>`
-    <div class="mission ${d.checks[id]?'done':''}">
-      <div><div class="mission-title">${title}</div><div class="mission-sub">${sub}</div></div>
-      <button class="toggle" data-mission="${id}">${d.checks[id]?'✓':'○'}</button>
-    </div>`).join("");
-  $$("[data-mission]").forEach(b=>b.onclick=()=>{
-    const d=getToday(); d.checks[b.dataset.mission]=!d.checks[b.dataset.mission]; saveToday(d);
-  });
-}
-
-function renderHome(){
-  const d=getToday();
-  const base=["Keuken","Hal","Woonkamer"];
-  const day=new Date().getDay();
-  const extra=day===2?["Badkamer","Toilet"]:day===3?["Slaapkamers"]:[];
-  const items=[...base,...extra];
-  $("#homeReset").innerHTML=items.map(x=>`<label><input type="checkbox" data-home="${x}" ${d.home[x]?'checked':''}> ${x}</label>`).join("");
-  $$("[data-home]").forEach(i=>i.onchange=()=>{const d=getToday();d.home[i.dataset.home]=i.checked;saveToday(d)});
-}
-
-function score(){
-  const d=getToday();
-  const missionDone=missions.filter(([id])=>d.checks[id]).length;
-  const homeKeys=Object.keys(d.home);
-  const homeDone=homeKeys.filter(k=>d.home[k]).length;
-  const denom=missions.length + Math.max(3,homeKeys.length);
-  return Math.round((missionDone+homeDone)/denom*100);
-}
-function renderScore(){
-  const s=score(); $("#meterFill").style.width=s+"%"; $("#scoreText").textContent=s+"%";
-  const hist=store.get("history",{});
-  hist[todayKey()]=s; store.set("history",hist);
-  const dates=Object.keys(hist).sort();
-  let streak=0;
-  let cursor=new Date();
-  while(true){
-    const k=cursor.toISOString().slice(0,10);
-    if((hist[k]||0)>=70){streak++;cursor.setDate(cursor.getDate()-1)} else break;
-  }
-  $("#streakText").textContent=`${streak} dagen streak`;
-  const vals=dates.slice(-30).map(k=>hist[k]).filter(v=>typeof v==="number");
-  $("#daysDone").textContent=vals.filter(v=>v>=70).length;
-  $("#avgScore").textContent=(vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0)+"%";
-  let best=0,cur=0;
-  for(const k of dates){ if(hist[k]>=70){cur++;best=Math.max(best,cur)}else cur=0; }
-  $("#bestStreak").textContent=best;
-}
-
-function renderMoney(){
-  const rows=store.get("money",[]);
-  const income=rows.filter(r=>r.type==="income").reduce((a,r)=>a+r.amount,0);
-  const expense=rows.filter(r=>r.type==="expense").reduce((a,r)=>a+r.amount,0);
-  $("#incomeTotal").textContent="€"+income.toFixed(2);
-  $("#expenseTotal").textContent="€"+expense.toFixed(2);
-  $("#balanceTotal").textContent="€"+(income-expense).toFixed(2);
-  $("#moneyList").innerHTML=rows.slice().reverse().map(r=>`
-    <div class="mission"><div><div class="mission-title">${r.category||"Overig"}</div><div class="mission-sub">${r.date}</div></div>
-    <strong>${r.type==="expense"?"−":"+"} €${r.amount.toFixed(2)}</strong></div>`).join("");
-}
-
-function render(){
-  renderMissions(); renderHome(); renderScore(); renderMoney();
-  $("#lifeGrid").innerHTML=lifeAreas.map(([i,t,s])=>`<div class="life-card"><span>${i}</span><b>${t}</b><small>${s}</small></div>`).join("");
-}
-
-$$(".tab").forEach(b=>b.onclick=()=>{
-  $$(".tab").forEach(x=>x.classList.remove("active")); $$(".panel").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active"); $("#"+b.dataset.tab).classList.add("active");
-});
-
-$("#resetToday").onclick=()=>{localStorage.removeItem("day-"+todayKey());render()};
-$("#addMoney").onclick=()=>{
-  const amount=parseFloat($("#moneyAmount").value); if(!amount)return;
-  const rows=store.get("money",[]);
-  rows.push({amount,type:$("#moneyType").value,category:$("#moneyCategory").value.trim(),date:todayKey()});
-  store.set("money",rows); $("#moneyAmount").value=""; $("#moneyCategory").value=""; renderMoney();
-};
-$("#energy").oninput=e=>$("#energyValue").textContent=e.target.value+"/10";
-$("#saveEnergy").onclick=()=>{const d=getToday();d.energy=+$("#energy").value;saveToday(d)};
-$("#saveWeek").onclick=()=>store.set("week",{
-  focus:$("#weekFocus").value,win:$("#weekWin").value,drain:$("#weekDrain").value
-});
-const wk=store.get("week",{});
-$("#weekFocus").value=wk.focus||""; $("#weekWin").value=wk.win||""; $("#weekDrain").value=wk.drain||"";
-
-function ytEmbed(url){
-  try{
-    const u=new URL(url);
-    let id=u.searchParams.get("v");
-    if(!id && u.hostname.includes("youtu.be")) id=u.pathname.slice(1);
-    return id ? `https://www.youtube.com/embed/${id}` : null;
-  }catch{return null}
-}
-$("#saveVideo").onclick=()=>{
-  const url=$("#videoUrl").value.trim(), emb=ytEmbed(url);
-  store.set("workoutVideo",url);
-  $("#videoFrame").innerHTML=emb?`<iframe src="${emb}" allow="picture-in-picture; fullscreen" allowfullscreen></iframe>`:"Deze link kon niet als YouTube-video worden herkend.";
-};
-const vid=store.get("workoutVideo","");
-$("#videoUrl").value=vid;
-if(vid){const emb=ytEmbed(vid); if(emb)$("#videoFrame").innerHTML=`<iframe src="${emb}" allow="picture-in-picture; fullscreen" allowfullscreen></iframe>`}
-
-function unlock(){
-  const pin=store.get("pin",null);
-  if(pin && $("#pinInput").value!==pin){alert("Pincode klopt niet.");return}
-  $("#lockScreen").classList.add("hidden"); $("#app").classList.remove("hidden");
-}
-$("#unlockBtn").onclick=unlock;
-$("#setPinBtn").onclick=()=>{
-  const p=prompt("Kies een pincode van 4–6 cijfers:");
-  if(p && /^\d{4,6}$/.test(p)){store.set("pin",p);alert("Pincode opgeslagen.");}else if(p!==null) alert("Gebruik 4–6 cijfers.");
-};
-$("#lockBtn").onclick=()=>{$("#app").classList.add("hidden");$("#lockScreen").classList.remove("hidden");$("#pinInput").value=""};
-
-const h=new Date().getHours();
-$("#greeting").textContent=h<12?"Good morning, Queen.":h<18?"Good afternoon, Queen.":"Good evening, Queen.";
-render();
-
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],KEY="guq_v2";const iso=d=>d.toISOString().slice(0,10),today=()=>iso(new Date());
+let D=Object.assign({pin:null,selected:today(),tasks:{},tomorrow:{},local:{},drinks:{},journal:{},order:{},social:{},beauty:{nails:"",pedicure:"",hair:"",brows:""},money:{overdraft:0,creditcard:0,car:0,carTarget:5000},vision:null,custom:[]},JSON.parse(localStorage.getItem(KEY)||"{}"));const save=()=>localStorage.setItem(KEY,JSON.stringify(D));
+const base=d=>{let z=["Sunday Reset","Keuken + weekprep","Badkamer + toilet","Slaapkamer","Vloeren","Koelkast/papier","Deep clean"][new Date(d+"T12:00").getDay()];return [["05:30","Wekker"],["05:45","Douchen"],["06:00","Morning Start"],["06:15","Trommels & eten voorbereiden"],["06:30","Kind wakker / ochtendroutine"],["07:30","Deur uit"],["08:30","School → werk"],["15:00","School ophalen / thuis verder werken"],["16:00","Rekenen + typen"],["17:30","Koken of leftovers"],["18:30","Woningaanbod bekijken"],["19:00","Quality time"],["20:00","Reageren op woningen"],["20:15","Avondroutine + samen lezen"],["20:45","Home Close: keuken · hal · woonkamer"],["21:00","Queen Time"],["23:00","Lights out"]].map((x,i)=>({id:"b"+i,time:x[0],text:x[1],done:false,zone:z}))};const tasks=d=>D.tasks[d]||(D.tasks[d]=base(d));
+function local(id){return !!D.local?.[D.selected]?.[id]}function toggle(id){D.local[D.selected]=D.local[D.selected]||{};D.local[D.selected][id]=!D.local[D.selected][id];save()}
+function render(){let now=new Date(),h=now.getHours(),sel=new Date(D.selected+"T12:00");$("#greet").textContent=h<12?"GOOD MORNING":h<18?"GOOD AFTERNOON":"GOOD EVENING";$("#briefTitle").textContent=h<12?"Your Morning Brief":h<18?"Your Day Edit":"Your Evening Edit";$("#date").textContent=sel.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});renderDays();renderBrief();renderTimeline();renderAreas()}
+function renderDays(){let n=$("#days");n.innerHTML="";let b=new Date(D.selected+"T12:00");for(let i=-2;i<5;i++){let d=new Date(b);d.setDate(d.getDate()+i);let x=document.createElement("button");x.innerHTML=`<b>${["Zo","Ma","Di","Wo","Do","Vr","Za"][d.getDay()]}</b><br>${d.getDate()}`;if(iso(d)===D.selected)x.className="active";x.onclick=()=>{D.selected=iso(d);save();render()};n.appendChild(x)}}
+function renderBrief(){let t=D.tomorrow[D.selected]||{},h=new Date().getHours(),a=[];if(t.focus)a.push(["🎯","Focus",t.focus]);if(t.top3?.length)a.push(["👑","Top 3",t.top3.join(" · ")]);a.push(["🥂","Etiquette","Rustig roeren: laat je lepel het kopje niet aantikken."]);if(new Date(D.selected+"T12:00").getDay()===0)a.push(["✨","Sunday Reset","Bestelling van de week + weekplanning."]);if(D.selected===today()&&h>=17)a.push(["🏡","Wonen",h<20?"18:30 aanbod bekijken · 20:00 reageren":"Check of je woningactie klaar is."]);$("#brief").innerHTML=a.map(x=>`<div class=item><span>${x[0]}</span><div><b>${x[1]}</b><div class=muted>${x[2]}</div></div></div>`).join("")}
+function renderTimeline(){let a=tasks(D.selected);$("#timeline").innerHTML=a.map(t=>`<div class="item ${t.done?"done":""}"><button class="check ${t.done?"on":""}" data-c="${t.id}">${t.done?"✓":""}</button><div class=time>${t.time}</div><div class=txt>${t.text}</div></div>`).join("");$$("[data-c]").forEach(b=>b.onclick=()=>{let t=a.find(x=>x.id===b.dataset.c);t.done=!t.done;save();render()});let n=a.filter(x=>x.done).length,p=Math.round(n/a.length*100);$("#done").textContent=`${n}/${a.length} done`;$("#score").textContent=p+"%";$("#fill").style.height=p+"%"}
+const areas=[["🏠","Home","Daily reset + zone","home"],["🔥","Body","Road to 62 kg","body"],["💧","Drinks","Water + uitzonderingen","drinks"],["💄","Beauty","Glow + maintenance","beauty"],["🥂","Etiquette","Learn · Practice · Master","etiquette"],["💼","Out With It!","Build + social tracker","build"],["📚","Mind","Read + learn","mind"],["✨","Law of Attraction","Journal + weekly order","loa"],["💰","Money","Goals, not receipts","money"],["💕","Family","Quality time + school","family"],["🗓️","Week","Sunday Reset","week"],["👑","Progress","See her becoming","progress"]];
+function renderAreas(){$("#areas").innerHTML=areas.map(a=>`<button class=area data-open="${a[3]}"><span class=ico>${a[0]}</span><b>${a[1]}</b><small>${a[2]}</small></button>`).join("");bindOpen()}
+const ck=(id,label)=>`<div class=item><button class="check ${local(id)?"on":""}" data-l="${id}">${local(id)?"✓":""}</button><div>${label}</div></div>`;
+function open(type){$("#modal").classList.remove("hidden");let T={home:["HOME","Daily reset"],body:["BODY","Road to 62 kg"],drinks:["DRINKS","Hydration & choices"],beauty:["BEAUTY","Glow maintenance"],etiquette:["ETIQUETTE","Queen Academy"],build:["BUILD","Out With It!"],mind:["MIND","Read · Learn · Grow"],loa:["LAW OF ATTRACTION","Align & journal"],money:["MONEY","Build financial peace"],family:["FAMILY","What matters at home"],week:["WEEK","Sunday Reset"],progress:["PROGRESS","She is becoming"]}[type];$("#me").textContent=T[0];$("#mt").textContent=T[1];let b=$("#mb");
+if(type==="home")b.innerHTML=`<div class=sub><h3>Every night</h3>${ck("kitchen","Keuken reset")}${ck("hall","Hal reset")}${ck("living","Woonkamer reset")}</div><div class=sub><h3>Extra zone</h3><p>${tasks(D.selected)[0].zone}</p><p class=muted>De concrete room-checklists worden editable gemaakt; geen dode tegel.</p></div>`;
+if(type==="body")b.innerHTML=`<div class=sub><h3>Today's body goals</h3>${ck("steps","10.000 stappen")}${ck("move","30 minuten beweging")}${ck("squats","Squat challenge")}${ck("breakfast","Ontbijt")}${ck("fruitveg","Fruit + groentebakje")}${ck("homefood","Thuis gegeten")}</div><div class=sub><h3>Workout</h3><p>Dag-specifieke Tai Bo · Wall Pilates · core · squats. Video-koppelingen kunnen hierna per trainingsdag worden toegevoegd.</p></div>`;
+if(type==="drinks"){let x=D.drinks[D.selected]||{water:0,redbull:0,alcohol:0,cans:0};b.innerHTML=`<div class=sub><h3>Water</h3><div class=meter><span style="width:${Math.min(100,x.water/10)}%"></span></div><p>${x.water}/1000 ml</p><button class=primary data-d=water>+250 ml</button></div><div class=sub><h3>Exceptions</h3><p>⚡ ${x.redbull} · 🍷 ${x.alcohol} · 🥤 ${x.cans}/1</p><button class=link data-d=redbull>+ Red Bull</button> <button class=link data-d=alcohol>+ Alcohol</button> <button class=link data-d=cans>+ Blikje</button><p class=muted>Geen registratie = 0. Nul Red Bull/alcohol telt aan het einde van de dag als gehaald.</p></div>`}
+if(type==="beauty")b.innerHTML=`<div class=sub><h3>Today</h3>${ck("facial","Facial routine")}${ck("makeup","Basic make-up")}${ck("perfume","Parfum")}${ck("hands","Handverzorging")}${ck("feet","Voetverzorging")}</div><div class=sub><h3>Maintenance</h3>${maint("Nagels","nails","4 weken")}${maint("Pedicure","pedicure","6 weken")}${maint("Kapper","hair","4 weken")}${maint("Wenkbrauwen epileren","brows","4 weken")}</div><div class=sub><h3>Make-up Academy</h3><p>Base · brows · concealer · blush/contour · eyes · lips · everyday face.</p></div>`;
+if(type==="etiquette")b.innerHTML=`<div class=sub><p class=eyebrow>TODAY'S LESSON</p><h3>Quiet elegance</h3><p>Roer zonder je lepel tegen het kopje te tikken.</p>${ck("etiquette","Vandaag geoefend")}</div><div class=sub><h3>💕 Teach your little Queen too</h3><p>Oefen het samen tijdens een drankje.</p></div><div class=sub><h3>Academy</h3><p>Dining · hosting · conversation · business · dress codes · travel · presence.</p></div>`;
+if(type==="build"){let s=D.social[D.selected]?.posted;b.innerHTML=`<div class=sub><h3>Out With It!</h3>${ck("owi","Betekenisvol gewerkt aan Out With It!")}</div><div class=sub><h3>Social Media</h3><button class=primary id=post>${s?"✓ Vandaag gepost":"Markeer als gepost"}</button><p class=muted>Glow Up Queen bewaakt consistentie; je contentproject doet het denkwerk.</p></div>`}
+if(type==="mind")b.innerHTML=`<div class=sub><h3>Queen Mind</h3>${ck("read","30 minuten lezen")}${ck("learn","Zelfontwikkeling / iets geleerd")}</div>`;
+if(type==="loa"){let j=D.journal[D.selected]||"",o=D.order[week(D.selected)]||"";b.innerHTML=`<div class=sub><h3>Journal</h3><textarea id=j>${j}</textarea><button class=link id=jd>🎙️ Dicteer</button><button class=primary id=js>Bewaar</button></div><div class=sub><h3>💌 Bestelling van de week</h3><textarea id=o placeholder="Wat fijn dat deze week…">${o}</textarea><button class=primary id=os>Bewaar bestelling</button></div><div class=sub><h3>Fysiek vision board</h3><input type=file accept="image/*" id=v>${D.vision?`<img class=photo src="${D.vision}">`:""}</div>`;
+if(type==="money")b.innerHTML=`<div class=sub><h3>Priorities</h3>${money("Roodstand","overdraft")}${money("Creditcard","creditcard")}${money("T-Roc aanbetaling","car")}</div><div class=sub><h3>This week's money move</h3>${ck("moneyaction","Eén concrete money action")}</div>`;
+if(type==="family")b.innerHTML=`<div class=sub><h3>Today</h3>${ck("quality","Quality time")}${ck("readchild","Samen gelezen")}${ck("math","Rekenen")}${ck("typing","Typen")}${ck("familyroutine","Gezinsroutine gevolgd")}</div><div class=sub><h3>Monthly connection</h3><p>Plan iets met familie/vriendinnen. Beheer zelf wie relevant is — bijvoorbeeld Arizza, Meiwina en Marilva.</p></div>`;
+if(type==="week")b.innerHTML=`<div class=sub><h3>Sunday Reset</h3>${ck("weekgoals","Weekdoelen")}${ck("order","Bestelling van de week")}${ck("mealplan","Kook- & leftoverdagen")}${ck("workouts","Workouts")}${ck("childweek","Weekplanning kind + huiswerk")}${ck("maintenance","Maintenance check")}</div><div class=sub><h3>Monthly Queen Letter</h3><p>Maanddoelen · money · relationships · leuke plannen · identity check-in · wat Queen Maya niet wil vergeten.</p></div>`;
+if(type==="progress"){let vals=Object.values(D.local).flatMap(x=>Object.values(x)),p=vals.length?Math.round(vals.filter(Boolean).length/vals.length*100):0;b.innerHTML=`<div class=sub><h3>30-day view</h3><div class=meter><span style="width:${p}%"></span></div><p><b>${p}%</b> van geregistreerde acties voltooid.</p><p>Body · drinks · sleep · reading · beauty · Out With It! · family · energy.</p></div><div class=sub><h3>Monthly identity check-in</h3><p>Waar sta ik? · Wie wil ik zijn? · Wat verandert er? · Welke actie hoort daarbij?</p></div>`}bindModal(type)}
+function maint(a,k,f){return `<div class=item><div><b>${a}</b><div class=muted>Laatst: ${D.beauty[k]||"nog instellen"} · ${f}</div></div><button class=link data-m="${k}">Vandaag gedaan</button></div>`}function money(a,k){return `<p><b>${a}</b></p><input type=number data-money="${k}" value="${D.money[k]||0}" placeholder="€">`}
+function bindModal(type){$$("[data-l]").forEach(x=>x.onclick=()=>{toggle(x.dataset.l);open(type)});$$("[data-m]").forEach(x=>x.onclick=()=>{D.beauty[x.dataset.m]=D.selected;save();open(type)});$$("[data-d]").forEach(x=>x.onclick=()=>{let q=D.drinks[D.selected]||{water:0,redbull:0,alcohol:0,cans:0};x.dataset.d==="water"?q.water+=250:q[x.dataset.d]++;D.drinks[D.selected]=q;save();open(type)});let p=$("#post");if(p)p.onclick=()=>{D.social[D.selected]={posted:true};save();open(type)};let js=$("#js");if(js)js.onclick=()=>{D.journal[D.selected]=$("#j").value;save();js.textContent="✓ Bewaard"};let os=$("#os");if(os)os.onclick=()=>{D.order[week(D.selected)]=$("#o").value;save();os.textContent="✓ Bewaard"};let jd=$("#jd");if(jd)jd.onclick=()=>dictate($("#j"));let v=$("#v");if(v)v.onchange=e=>{let f=e.target.files[0],r=new FileReader;r.onload=()=>{D.vision=r.result;save();open(type)};if(f)r.readAsDataURL(f)};$$("[data-money]").forEach(i=>i.onchange=()=>{D.money[i.dataset.money]=Number(i.value||0);save()})}
+function week(s){let d=new Date(s+"T12:00");d.setDate(d.getDate()-d.getDay());return iso(d)}function bindOpen(){$$("[data-open]").forEach(x=>x.onclick=()=>open(x.dataset.open))}
+function dictate(el){let R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){alert("Gebruik de microfoon op je iPhone-toetsenbord voor voice-to-text.");return}let r=new R();r.lang="nl-NL";r.onresult=e=>el.value+=(el.value?" ":"")+e.results[0][0].transcript;r.start()}
+$("#voice").onclick=()=>$("#coach").classList.toggle("hidden");$("#dictate").onclick=()=>dictate($("#coachText"));$("#ask").onclick=()=>{let q=$("#coachText").value.trim(),r="Ik hoor je, Queen Maya. ";let m=q.match(/voeg (.+?) (dagelijks|elke dag) toe/i);if(m){D.custom.push({name:m[1],freq:"daily"});save();r+=`“${m[1]}” is als custom tracker opgeslagen. Voor volledig dynamisch plaatsen in elk scherm bouwen we hierna de tracker-editor.`}else if(/wat moet ik nu/i.test(q)){let n=tasks(today()).find(x=>!x.done);r+=n?`Je volgende open stap: ${n.time} — ${n.text}. Eén ding tegelijk.`:"Je daglijst is rond."}else r+="Deze gratis prototypeversie heeft nog geen echte AI-koppeling. Ik doe niet alsof She al live ChatGPT-antwoorden kan geven.";$("#reply").textContent=r};
+$("#tomorrow").onclick=()=>{let d=new Date();d.setDate(d.getDate()+1);let k=iso(d),old=D.tomorrow[k]||{},f=prompt("Focus voor morgen:",old.focus||"");if(f===null)return;let t=prompt("Top 3 — scheid met komma's:",(old.top3||[]).join(", "));D.tomorrow[k]={focus:f,top3:(t||"").split(",").map(x=>x.trim()).filter(Boolean)};save();alert("Morgen staat klaar, Queen Maya. 👑")};
+$("#addTask").onclick=()=>{let t=prompt("Tijd, bijv. 14:30:");if(!t)return;let x=prompt("Taak:");if(!x)return;tasks(D.selected).push({id:"c"+Date.now(),time:t,text:x,done:false});D.tasks[D.selected].sort((a,b)=>a.time.localeCompare(b.time));save();render()};
+$("#close").onclick=()=>$("#modal").classList.add("hidden");$("#setPin").onclick=()=>{let p=prompt("Kies 4–8 cijfers:");if(p&&/^\d{4,8}$/.test(p)){D.pin=p;save();$("#msg").textContent="Pincode opgeslagen."}else if(p)$("#msg").textContent="Gebruik 4–8 cijfers."};$("#unlock").onclick=()=>{if(!D.pin){$("#msg").textContent="Stel eerst een pincode in.";return}if($("#pin").value!==D.pin){$("#msg").textContent="Pincode klopt niet.";return}$("#lock").classList.add("hidden");$("#app").classList.remove("hidden");render()};$("#lockBtn").onclick=()=>{$("#app").classList.add("hidden");$("#lock").classList.remove("hidden");$("#pin").value=""};bindOpen();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");if(!D.pin)$("#lockCopy").textContent="Maak eerst je persoonlijke pincode.";
