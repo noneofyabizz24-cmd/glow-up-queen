@@ -6,3 +6,9 @@ Included: real local PIN validation, pink/ink/gold UI, filling crown score, day 
 Not faked: real AI/ChatGPT access, bank syncing, Apple Health/Fitdays/Screen Time imports, Face ID, live news and reliable scheduled iOS push notifications are **not** active in this static GitHub Pages build. Those need separate integrations/backend/native capabilities.
 
 To publish: replace the existing GitHub Pages files with these files and commit.
+
+
+## v2.1 fix
+- Fixed JavaScript syntax error that prevented every button from working.
+- Added immediate service-worker cache refresh so iPhone does not keep the broken v2 script.
+- PIN, tiles, day switching and checkmarks are now wired again.

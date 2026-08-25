@@ -1,32 +1,752 @@
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],KEY="guq_v2";const iso=d=>d.toISOString().slice(0,10),today=()=>iso(new Date());
-let D=Object.assign({pin:null,selected:today(),tasks:{},tomorrow:{},local:{},drinks:{},journal:{},order:{},social:{},beauty:{nails:"",pedicure:"",hair:"",brows:""},money:{overdraft:0,creditcard:0,car:0,carTarget:5000},vision:null,custom:[]},JSON.parse(localStorage.getItem(KEY)||"{}"));const save=()=>localStorage.setItem(KEY,JSON.stringify(D));
-const base=d=>{let z=["Sunday Reset","Keuken + weekprep","Badkamer + toilet","Slaapkamer","Vloeren","Koelkast/papier","Deep clean"][new Date(d+"T12:00").getDay()];return [["05:30","Wekker"],["05:45","Douchen"],["06:00","Morning Start"],["06:15","Trommels & eten voorbereiden"],["06:30","Kind wakker / ochtendroutine"],["07:30","Deur uit"],["08:30","School → werk"],["15:00","School ophalen / thuis verder werken"],["16:00","Rekenen + typen"],["17:30","Koken of leftovers"],["18:30","Woningaanbod bekijken"],["19:00","Quality time"],["20:00","Reageren op woningen"],["20:15","Avondroutine + samen lezen"],["20:45","Home Close: keuken · hal · woonkamer"],["21:00","Queen Time"],["23:00","Lights out"]].map((x,i)=>({id:"b"+i,time:x[0],text:x[1],done:false,zone:z}))};const tasks=d=>D.tasks[d]||(D.tasks[d]=base(d));
-function local(id){return !!D.local?.[D.selected]?.[id]}function toggle(id){D.local[D.selected]=D.local[D.selected]||{};D.local[D.selected][id]=!D.local[D.selected][id];save()}
-function render(){let now=new Date(),h=now.getHours(),sel=new Date(D.selected+"T12:00");$("#greet").textContent=h<12?"GOOD MORNING":h<18?"GOOD AFTERNOON":"GOOD EVENING";$("#briefTitle").textContent=h<12?"Your Morning Brief":h<18?"Your Day Edit":"Your Evening Edit";$("#date").textContent=sel.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});renderDays();renderBrief();renderTimeline();renderAreas()}
-function renderDays(){let n=$("#days");n.innerHTML="";let b=new Date(D.selected+"T12:00");for(let i=-2;i<5;i++){let d=new Date(b);d.setDate(d.getDate()+i);let x=document.createElement("button");x.innerHTML=`<b>${["Zo","Ma","Di","Wo","Do","Vr","Za"][d.getDay()]}</b><br>${d.getDate()}`;if(iso(d)===D.selected)x.className="active";x.onclick=()=>{D.selected=iso(d);save();render()};n.appendChild(x)}}
-function renderBrief(){let t=D.tomorrow[D.selected]||{},h=new Date().getHours(),a=[];if(t.focus)a.push(["🎯","Focus",t.focus]);if(t.top3?.length)a.push(["👑","Top 3",t.top3.join(" · ")]);a.push(["🥂","Etiquette","Rustig roeren: laat je lepel het kopje niet aantikken."]);if(new Date(D.selected+"T12:00").getDay()===0)a.push(["✨","Sunday Reset","Bestelling van de week + weekplanning."]);if(D.selected===today()&&h>=17)a.push(["🏡","Wonen",h<20?"18:30 aanbod bekijken · 20:00 reageren":"Check of je woningactie klaar is."]);$("#brief").innerHTML=a.map(x=>`<div class=item><span>${x[0]}</span><div><b>${x[1]}</b><div class=muted>${x[2]}</div></div></div>`).join("")}
-function renderTimeline(){let a=tasks(D.selected);$("#timeline").innerHTML=a.map(t=>`<div class="item ${t.done?"done":""}"><button class="check ${t.done?"on":""}" data-c="${t.id}">${t.done?"✓":""}</button><div class=time>${t.time}</div><div class=txt>${t.text}</div></div>`).join("");$$("[data-c]").forEach(b=>b.onclick=()=>{let t=a.find(x=>x.id===b.dataset.c);t.done=!t.done;save();render()});let n=a.filter(x=>x.done).length,p=Math.round(n/a.length*100);$("#done").textContent=`${n}/${a.length} done`;$("#score").textContent=p+"%";$("#fill").style.height=p+"%"}
-const areas=[["🏠","Home","Daily reset + zone","home"],["🔥","Body","Road to 62 kg","body"],["💧","Drinks","Water + uitzonderingen","drinks"],["💄","Beauty","Glow + maintenance","beauty"],["🥂","Etiquette","Learn · Practice · Master","etiquette"],["💼","Out With It!","Build + social tracker","build"],["📚","Mind","Read + learn","mind"],["✨","Law of Attraction","Journal + weekly order","loa"],["💰","Money","Goals, not receipts","money"],["💕","Family","Quality time + school","family"],["🗓️","Week","Sunday Reset","week"],["👑","Progress","See her becoming","progress"]];
-function renderAreas(){$("#areas").innerHTML=areas.map(a=>`<button class=area data-open="${a[3]}"><span class=ico>${a[0]}</span><b>${a[1]}</b><small>${a[2]}</small></button>`).join("");bindOpen()}
-const ck=(id,label)=>`<div class=item><button class="check ${local(id)?"on":""}" data-l="${id}">${local(id)?"✓":""}</button><div>${label}</div></div>`;
-function open(type){$("#modal").classList.remove("hidden");let T={home:["HOME","Daily reset"],body:["BODY","Road to 62 kg"],drinks:["DRINKS","Hydration & choices"],beauty:["BEAUTY","Glow maintenance"],etiquette:["ETIQUETTE","Queen Academy"],build:["BUILD","Out With It!"],mind:["MIND","Read · Learn · Grow"],loa:["LAW OF ATTRACTION","Align & journal"],money:["MONEY","Build financial peace"],family:["FAMILY","What matters at home"],week:["WEEK","Sunday Reset"],progress:["PROGRESS","She is becoming"]}[type];$("#me").textContent=T[0];$("#mt").textContent=T[1];let b=$("#mb");
-if(type==="home")b.innerHTML=`<div class=sub><h3>Every night</h3>${ck("kitchen","Keuken reset")}${ck("hall","Hal reset")}${ck("living","Woonkamer reset")}</div><div class=sub><h3>Extra zone</h3><p>${tasks(D.selected)[0].zone}</p><p class=muted>De concrete room-checklists worden editable gemaakt; geen dode tegel.</p></div>`;
-if(type==="body")b.innerHTML=`<div class=sub><h3>Today's body goals</h3>${ck("steps","10.000 stappen")}${ck("move","30 minuten beweging")}${ck("squats","Squat challenge")}${ck("breakfast","Ontbijt")}${ck("fruitveg","Fruit + groentebakje")}${ck("homefood","Thuis gegeten")}</div><div class=sub><h3>Workout</h3><p>Dag-specifieke Tai Bo · Wall Pilates · core · squats. Video-koppelingen kunnen hierna per trainingsdag worden toegevoegd.</p></div>`;
-if(type==="drinks"){let x=D.drinks[D.selected]||{water:0,redbull:0,alcohol:0,cans:0};b.innerHTML=`<div class=sub><h3>Water</h3><div class=meter><span style="width:${Math.min(100,x.water/10)}%"></span></div><p>${x.water}/1000 ml</p><button class=primary data-d=water>+250 ml</button></div><div class=sub><h3>Exceptions</h3><p>⚡ ${x.redbull} · 🍷 ${x.alcohol} · 🥤 ${x.cans}/1</p><button class=link data-d=redbull>+ Red Bull</button> <button class=link data-d=alcohol>+ Alcohol</button> <button class=link data-d=cans>+ Blikje</button><p class=muted>Geen registratie = 0. Nul Red Bull/alcohol telt aan het einde van de dag als gehaald.</p></div>`}
-if(type==="beauty")b.innerHTML=`<div class=sub><h3>Today</h3>${ck("facial","Facial routine")}${ck("makeup","Basic make-up")}${ck("perfume","Parfum")}${ck("hands","Handverzorging")}${ck("feet","Voetverzorging")}</div><div class=sub><h3>Maintenance</h3>${maint("Nagels","nails","4 weken")}${maint("Pedicure","pedicure","6 weken")}${maint("Kapper","hair","4 weken")}${maint("Wenkbrauwen epileren","brows","4 weken")}</div><div class=sub><h3>Make-up Academy</h3><p>Base · brows · concealer · blush/contour · eyes · lips · everyday face.</p></div>`;
-if(type==="etiquette")b.innerHTML=`<div class=sub><p class=eyebrow>TODAY'S LESSON</p><h3>Quiet elegance</h3><p>Roer zonder je lepel tegen het kopje te tikken.</p>${ck("etiquette","Vandaag geoefend")}</div><div class=sub><h3>💕 Teach your little Queen too</h3><p>Oefen het samen tijdens een drankje.</p></div><div class=sub><h3>Academy</h3><p>Dining · hosting · conversation · business · dress codes · travel · presence.</p></div>`;
-if(type==="build"){let s=D.social[D.selected]?.posted;b.innerHTML=`<div class=sub><h3>Out With It!</h3>${ck("owi","Betekenisvol gewerkt aan Out With It!")}</div><div class=sub><h3>Social Media</h3><button class=primary id=post>${s?"✓ Vandaag gepost":"Markeer als gepost"}</button><p class=muted>Glow Up Queen bewaakt consistentie; je contentproject doet het denkwerk.</p></div>`}
-if(type==="mind")b.innerHTML=`<div class=sub><h3>Queen Mind</h3>${ck("read","30 minuten lezen")}${ck("learn","Zelfontwikkeling / iets geleerd")}</div>`;
-if(type==="loa"){let j=D.journal[D.selected]||"",o=D.order[week(D.selected)]||"";b.innerHTML=`<div class=sub><h3>Journal</h3><textarea id=j>${j}</textarea><button class=link id=jd>🎙️ Dicteer</button><button class=primary id=js>Bewaar</button></div><div class=sub><h3>💌 Bestelling van de week</h3><textarea id=o placeholder="Wat fijn dat deze week…">${o}</textarea><button class=primary id=os>Bewaar bestelling</button></div><div class=sub><h3>Fysiek vision board</h3><input type=file accept="image/*" id=v>${D.vision?`<img class=photo src="${D.vision}">`:""}</div>`;
-if(type==="money")b.innerHTML=`<div class=sub><h3>Priorities</h3>${money("Roodstand","overdraft")}${money("Creditcard","creditcard")}${money("T-Roc aanbetaling","car")}</div><div class=sub><h3>This week's money move</h3>${ck("moneyaction","Eén concrete money action")}</div>`;
-if(type==="family")b.innerHTML=`<div class=sub><h3>Today</h3>${ck("quality","Quality time")}${ck("readchild","Samen gelezen")}${ck("math","Rekenen")}${ck("typing","Typen")}${ck("familyroutine","Gezinsroutine gevolgd")}</div><div class=sub><h3>Monthly connection</h3><p>Plan iets met familie/vriendinnen. Beheer zelf wie relevant is — bijvoorbeeld Arizza, Meiwina en Marilva.</p></div>`;
-if(type==="week")b.innerHTML=`<div class=sub><h3>Sunday Reset</h3>${ck("weekgoals","Weekdoelen")}${ck("order","Bestelling van de week")}${ck("mealplan","Kook- & leftoverdagen")}${ck("workouts","Workouts")}${ck("childweek","Weekplanning kind + huiswerk")}${ck("maintenance","Maintenance check")}</div><div class=sub><h3>Monthly Queen Letter</h3><p>Maanddoelen · money · relationships · leuke plannen · identity check-in · wat Queen Maya niet wil vergeten.</p></div>`;
-if(type==="progress"){let vals=Object.values(D.local).flatMap(x=>Object.values(x)),p=vals.length?Math.round(vals.filter(Boolean).length/vals.length*100):0;b.innerHTML=`<div class=sub><h3>30-day view</h3><div class=meter><span style="width:${p}%"></span></div><p><b>${p}%</b> van geregistreerde acties voltooid.</p><p>Body · drinks · sleep · reading · beauty · Out With It! · family · energy.</p></div><div class=sub><h3>Monthly identity check-in</h3><p>Waar sta ik? · Wie wil ik zijn? · Wat verandert er? · Welke actie hoort daarbij?</p></div>`}bindModal(type)}
-function maint(a,k,f){return `<div class=item><div><b>${a}</b><div class=muted>Laatst: ${D.beauty[k]||"nog instellen"} · ${f}</div></div><button class=link data-m="${k}">Vandaag gedaan</button></div>`}function money(a,k){return `<p><b>${a}</b></p><input type=number data-money="${k}" value="${D.money[k]||0}" placeholder="€">`}
-function bindModal(type){$$("[data-l]").forEach(x=>x.onclick=()=>{toggle(x.dataset.l);open(type)});$$("[data-m]").forEach(x=>x.onclick=()=>{D.beauty[x.dataset.m]=D.selected;save();open(type)});$$("[data-d]").forEach(x=>x.onclick=()=>{let q=D.drinks[D.selected]||{water:0,redbull:0,alcohol:0,cans:0};x.dataset.d==="water"?q.water+=250:q[x.dataset.d]++;D.drinks[D.selected]=q;save();open(type)});let p=$("#post");if(p)p.onclick=()=>{D.social[D.selected]={posted:true};save();open(type)};let js=$("#js");if(js)js.onclick=()=>{D.journal[D.selected]=$("#j").value;save();js.textContent="✓ Bewaard"};let os=$("#os");if(os)os.onclick=()=>{D.order[week(D.selected)]=$("#o").value;save();os.textContent="✓ Bewaard"};let jd=$("#jd");if(jd)jd.onclick=()=>dictate($("#j"));let v=$("#v");if(v)v.onchange=e=>{let f=e.target.files[0],r=new FileReader;r.onload=()=>{D.vision=r.result;save();open(type)};if(f)r.readAsDataURL(f)};$$("[data-money]").forEach(i=>i.onchange=()=>{D.money[i.dataset.money]=Number(i.value||0);save()})}
-function week(s){let d=new Date(s+"T12:00");d.setDate(d.getDate()-d.getDay());return iso(d)}function bindOpen(){$$("[data-open]").forEach(x=>x.onclick=()=>open(x.dataset.open))}
-function dictate(el){let R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){alert("Gebruik de microfoon op je iPhone-toetsenbord voor voice-to-text.");return}let r=new R();r.lang="nl-NL";r.onresult=e=>el.value+=(el.value?" ":"")+e.results[0][0].transcript;r.start()}
-$("#voice").onclick=()=>$("#coach").classList.toggle("hidden");$("#dictate").onclick=()=>dictate($("#coachText"));$("#ask").onclick=()=>{let q=$("#coachText").value.trim(),r="Ik hoor je, Queen Maya. ";let m=q.match(/voeg (.+?) (dagelijks|elke dag) toe/i);if(m){D.custom.push({name:m[1],freq:"daily"});save();r+=`“${m[1]}” is als custom tracker opgeslagen. Voor volledig dynamisch plaatsen in elk scherm bouwen we hierna de tracker-editor.`}else if(/wat moet ik nu/i.test(q)){let n=tasks(today()).find(x=>!x.done);r+=n?`Je volgende open stap: ${n.time} — ${n.text}. Eén ding tegelijk.`:"Je daglijst is rond."}else r+="Deze gratis prototypeversie heeft nog geen echte AI-koppeling. Ik doe niet alsof She al live ChatGPT-antwoorden kan geven.";$("#reply").textContent=r};
-$("#tomorrow").onclick=()=>{let d=new Date();d.setDate(d.getDate()+1);let k=iso(d),old=D.tomorrow[k]||{},f=prompt("Focus voor morgen:",old.focus||"");if(f===null)return;let t=prompt("Top 3 — scheid met komma's:",(old.top3||[]).join(", "));D.tomorrow[k]={focus:f,top3:(t||"").split(",").map(x=>x.trim()).filter(Boolean)};save();alert("Morgen staat klaar, Queen Maya. 👑")};
-$("#addTask").onclick=()=>{let t=prompt("Tijd, bijv. 14:30:");if(!t)return;let x=prompt("Taak:");if(!x)return;tasks(D.selected).push({id:"c"+Date.now(),time:t,text:x,done:false});D.tasks[D.selected].sort((a,b)=>a.time.localeCompare(b.time));save();render()};
-$("#close").onclick=()=>$("#modal").classList.add("hidden");$("#setPin").onclick=()=>{let p=prompt("Kies 4–8 cijfers:");if(p&&/^\d{4,8}$/.test(p)){D.pin=p;save();$("#msg").textContent="Pincode opgeslagen."}else if(p)$("#msg").textContent="Gebruik 4–8 cijfers."};$("#unlock").onclick=()=>{if(!D.pin){$("#msg").textContent="Stel eerst een pincode in.";return}if($("#pin").value!==D.pin){$("#msg").textContent="Pincode klopt niet.";return}$("#lock").classList.add("hidden");$("#app").classList.remove("hidden");render()};$("#lockBtn").onclick=()=>{$("#app").classList.add("hidden");$("#lock").classList.remove("hidden");$("#pin").value=""};bindOpen();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");if(!D.pin)$("#lockCopy").textContent="Maak eerst je persoonlijke pincode.";
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const KEY = "guq_v2_1";
+
+const iso = (d) => d.toISOString().slice(0, 10);
+const today = () => iso(new Date());
+
+const defaults = {
+  pin: null,
+  selected: today(),
+  tasks: {},
+  tomorrow: {},
+  local: {},
+  drinks: {},
+  journal: {},
+  order: {},
+  social: {},
+  beauty: { nails: "", pedicure: "", hair: "", brows: "" },
+  money: { overdraft: 0, creditcard: 0, car: 0, carTarget: 5000 },
+  vision: null,
+  custom: []
+};
+
+let D;
+try {
+  D = Object.assign({}, defaults, JSON.parse(localStorage.getItem(KEY) || "{}"));
+} catch {
+  D = structuredClone(defaults);
+}
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(D));
+}
+
+function baseTasks(date) {
+  const day = new Date(date + "T12:00:00").getDay();
+  const zones = [
+    "Sunday Reset",
+    "Keuken + weekprep",
+    "Badkamer + toilet",
+    "Slaapkamer",
+    "Vloeren",
+    "Koelkast / papier",
+    "Deep clean"
+  ];
+  const zone = zones[day];
+
+  return [
+    ["05:30", "Wekker"],
+    ["05:45", "Douchen"],
+    ["06:00", "Morning Start"],
+    ["06:15", "Trommels & eten voorbereiden"],
+    ["06:30", "Kind wakker / ochtendroutine"],
+    ["07:30", "Deur uit"],
+    ["08:30", "School → werk"],
+    ["15:00", "School ophalen / thuis verder werken"],
+    ["16:00", "Rekenen + typen"],
+    ["17:30", "Koken of leftovers"],
+    ["18:30", "Woningaanbod bekijken"],
+    ["19:00", "Quality time"],
+    ["20:00", "Reageren op woningen"],
+    ["20:15", "Avondroutine + samen lezen"],
+    ["20:45", "Home Close: keuken · hal · woonkamer"],
+    ["21:00", "Queen Time"],
+    ["23:00", "Lights out"]
+  ].map((x, i) => ({
+    id: "b" + i,
+    time: x[0],
+    text: x[1],
+    done: false,
+    zone
+  }));
+}
+
+function tasks(date) {
+  if (!D.tasks[date]) D.tasks[date] = baseTasks(date);
+  return D.tasks[date];
+}
+
+function localDone(id) {
+  return Boolean(D.local?.[D.selected]?.[id]);
+}
+
+function toggleLocal(id) {
+  D.local[D.selected] = D.local[D.selected] || {};
+  D.local[D.selected][id] = !D.local[D.selected][id];
+  save();
+}
+
+function render() {
+  const now = new Date();
+  const h = now.getHours();
+  const selectedDate = new Date(D.selected + "T12:00:00");
+
+  $("#greet").textContent =
+    h < 12 ? "GOOD MORNING" : h < 18 ? "GOOD AFTERNOON" : "GOOD EVENING";
+
+  $("#briefTitle").textContent =
+    h < 12 ? "Your Morning Brief" : h < 18 ? "Your Day Edit" : "Your Evening Edit";
+
+  $("#date").textContent = selectedDate.toLocaleDateString("nl-NL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+  renderDays();
+  renderBrief();
+  renderTimeline();
+  renderAreas();
+}
+
+function renderDays() {
+  const nav = $("#days");
+  nav.innerHTML = "";
+  const base = new Date(D.selected + "T12:00:00");
+
+  for (let i = -2; i < 5; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+
+    const btn = document.createElement("button");
+    btn.innerHTML =
+      `<b>${["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"][d.getDay()]}</b><br>${d.getDate()}`;
+
+    if (iso(d) === D.selected) btn.className = "active";
+
+    btn.onclick = () => {
+      D.selected = iso(d);
+      save();
+      render();
+    };
+
+    nav.appendChild(btn);
+  }
+}
+
+function renderBrief() {
+  const prep = D.tomorrow[D.selected] || {};
+  const h = new Date().getHours();
+  const items = [];
+
+  if (prep.focus) items.push(["🎯", "Focus", prep.focus]);
+  if (prep.top3?.length) items.push(["👑", "Top 3", prep.top3.join(" · ")]);
+
+  items.push([
+    "🥂",
+    "Etiquette",
+    "Rustig roeren: laat je lepel het kopje niet aantikken."
+  ]);
+
+  if (new Date(D.selected + "T12:00:00").getDay() === 0) {
+    items.push(["✨", "Sunday Reset", "Bestelling van de week + weekplanning."]);
+  }
+
+  // Housing only appears when it is actually relevant later in the day.
+  if (D.selected === today() && h >= 17) {
+    items.push([
+      "🏡",
+      "Wonen",
+      h < 20
+        ? "18:30 aanbod bekijken · 20:00 reageren"
+        : "Check of je woningactie klaar is."
+    ]);
+  }
+
+  $("#brief").innerHTML = items
+    .map(
+      (x) => `
+      <div class="item">
+        <span>${x[0]}</span>
+        <div><b>${x[1]}</b><div class="muted">${x[2]}</div></div>
+      </div>`
+    )
+    .join("");
+}
+
+function renderTimeline() {
+  const list = tasks(D.selected);
+
+  $("#timeline").innerHTML = list
+    .map(
+      (t) => `
+      <div class="item ${t.done ? "done" : ""}">
+        <button class="check ${t.done ? "on" : ""}" data-c="${t.id}">
+          ${t.done ? "✓" : ""}
+        </button>
+        <div class="time">${t.time}</div>
+        <div class="txt">${t.text}</div>
+      </div>`
+    )
+    .join("");
+
+  $$("[data-c]").forEach((btn) => {
+    btn.onclick = () => {
+      const task = list.find((x) => x.id === btn.dataset.c);
+      if (!task) return;
+      task.done = !task.done;
+      save();
+      render();
+    };
+  });
+
+  const completed = list.filter((x) => x.done).length;
+  const pct = list.length ? Math.round((completed / list.length) * 100) : 0;
+
+  $("#done").textContent = `${completed}/${list.length} done`;
+  $("#score").textContent = pct + "%";
+  $("#fill").style.height = pct + "%";
+}
+
+const areas = [
+  ["🏠", "Home", "Daily reset + zone", "home"],
+  ["🔥", "Body", "Road to 62 kg", "body"],
+  ["💧", "Drinks", "Water + uitzonderingen", "drinks"],
+  ["💄", "Beauty", "Glow + maintenance", "beauty"],
+  ["🥂", "Etiquette", "Learn · Practice · Master", "etiquette"],
+  ["💼", "Out With It!", "Build + social tracker", "build"],
+  ["📚", "Mind", "Read + learn", "mind"],
+  ["✨", "Law of Attraction", "Journal + weekly order", "loa"],
+  ["💰", "Money", "Goals, not receipts", "money"],
+  ["💕", "Family", "Quality time + school", "family"],
+  ["🗓️", "Week", "Sunday Reset", "week"],
+  ["👑", "Progress", "See her becoming", "progress"]
+];
+
+function renderAreas() {
+  $("#areas").innerHTML = areas
+    .map(
+      (a) => `
+      <button class="area" data-open="${a[3]}">
+        <span class="ico">${a[0]}</span>
+        <b>${a[1]}</b>
+        <small>${a[2]}</small>
+      </button>`
+    )
+    .join("");
+
+  bindOpenButtons();
+}
+
+function checkRow(id, label) {
+  return `
+    <div class="item">
+      <button class="check ${localDone(id) ? "on" : ""}" data-l="${id}">
+        ${localDone(id) ? "✓" : ""}
+      </button>
+      <div>${label}</div>
+    </div>`;
+}
+
+function maintenanceRow(label, key, frequency) {
+  return `
+    <div class="item">
+      <div>
+        <b>${label}</b>
+        <div class="muted">Laatst: ${D.beauty[key] || "nog instellen"} · ${frequency}</div>
+      </div>
+      <button class="link" data-m="${key}">Vandaag gedaan</button>
+    </div>`;
+}
+
+function moneyInput(label, key) {
+  return `
+    <p><b>${label}</b></p>
+    <input type="number" data-money="${key}" value="${D.money[key] || 0}" placeholder="€">`;
+}
+
+function weekKey(dateString) {
+  const d = new Date(dateString + "T12:00:00");
+  d.setDate(d.getDate() - d.getDay());
+  return iso(d);
+}
+
+function openModal(type) {
+  $("#modal").classList.remove("hidden");
+
+  const titles = {
+    home: ["HOME", "Daily reset"],
+    body: ["BODY", "Road to 62 kg"],
+    drinks: ["DRINKS", "Hydration & choices"],
+    beauty: ["BEAUTY", "Glow maintenance"],
+    etiquette: ["ETIQUETTE", "Queen Academy"],
+    build: ["BUILD", "Out With It!"],
+    mind: ["MIND", "Read · Learn · Grow"],
+    loa: ["LAW OF ATTRACTION", "Align & journal"],
+    money: ["MONEY", "Build financial peace"],
+    family: ["FAMILY", "What matters at home"],
+    week: ["WEEK", "Sunday Reset"],
+    progress: ["PROGRESS", "She is becoming"]
+  };
+
+  const title = titles[type];
+  $("#me").textContent = title[0];
+  $("#mt").textContent = title[1];
+
+  const body = $("#mb");
+
+  if (type === "home") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Every night</h3>
+        ${checkRow("kitchen", "Keuken reset")}
+        ${checkRow("hall", "Hal reset")}
+        ${checkRow("living", "Woonkamer reset")}
+      </div>
+      <div class="sub">
+        <h3>Extra zone</h3>
+        <p>${tasks(D.selected)[0].zone}</p>
+        <p class="muted">De concrete room-checklists worden hierna editable gemaakt.</p>
+      </div>`;
+  }
+
+  if (type === "body") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Today's body goals</h3>
+        ${checkRow("steps", "10.000 stappen")}
+        ${checkRow("move", "30 minuten beweging")}
+        ${checkRow("squats", "Squat challenge")}
+        ${checkRow("breakfast", "Ontbijt")}
+        ${checkRow("fruitveg", "Fruit + groentebakje")}
+        ${checkRow("homefood", "Thuis gegeten")}
+      </div>
+      <div class="sub">
+        <h3>Workout</h3>
+        <p>Dag-specifieke Tai Bo · Wall Pilates · core · squats.</p>
+      </div>`;
+  }
+
+  if (type === "drinks") {
+    const x = D.drinks[D.selected] || {
+      water: 0,
+      redbull: 0,
+      alcohol: 0,
+      cans: 0
+    };
+
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Water</h3>
+        <div class="meter"><span style="width:${Math.min(100, x.water / 10)}%"></span></div>
+        <p>${x.water}/1000 ml</p>
+        <button class="primary" data-d="water">+250 ml</button>
+      </div>
+      <div class="sub">
+        <h3>Exceptions</h3>
+        <p>⚡ ${x.redbull} · 🍷 ${x.alcohol} · 🥤 ${x.cans}/1</p>
+        <button class="link" data-d="redbull">+ Red Bull</button>
+        <button class="link" data-d="alcohol">+ Alcohol</button>
+        <button class="link" data-d="cans">+ Blikje</button>
+        <p class="muted">Geen registratie = 0. Nul Red Bull/alcohol telt aan het einde van de dag als gehaald.</p>
+      </div>`;
+  }
+
+  if (type === "beauty") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Today</h3>
+        ${checkRow("facial", "Facial routine")}
+        ${checkRow("makeup", "Basic make-up")}
+        ${checkRow("perfume", "Parfum")}
+        ${checkRow("hands", "Handverzorging")}
+        ${checkRow("feet", "Voetverzorging")}
+      </div>
+      <div class="sub">
+        <h3>Maintenance</h3>
+        ${maintenanceRow("Nagels", "nails", "4 weken")}
+        ${maintenanceRow("Pedicure", "pedicure", "6 weken")}
+        ${maintenanceRow("Kapper", "hair", "4 weken")}
+        ${maintenanceRow("Wenkbrauwen epileren", "brows", "4 weken")}
+      </div>
+      <div class="sub">
+        <h3>Make-up Academy</h3>
+        <p>Base · brows · concealer · blush/contour · eyes · lips · everyday face.</p>
+      </div>`;
+  }
+
+  if (type === "etiquette") {
+    body.innerHTML = `
+      <div class="sub">
+        <p class="eyebrow">TODAY'S LESSON</p>
+        <h3>Quiet elegance</h3>
+        <p>Roer zonder je lepel tegen het kopje te tikken.</p>
+        ${checkRow("etiquette", "Vandaag geoefend")}
+      </div>
+      <div class="sub">
+        <h3>💕 Teach your little Queen too</h3>
+        <p>Oefen het samen tijdens een drankje.</p>
+      </div>
+      <div class="sub">
+        <h3>Academy</h3>
+        <p>Dining · hosting · conversation · business · dress codes · travel · presence.</p>
+      </div>`;
+  }
+
+  if (type === "build") {
+    const posted = D.social[D.selected]?.posted;
+
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Out With It!</h3>
+        ${checkRow("owi", "Betekenisvol gewerkt aan Out With It!")}
+      </div>
+      <div class="sub">
+        <h3>Social Media</h3>
+        <button class="primary" id="post">${posted ? "✓ Vandaag gepost" : "Markeer als gepost"}</button>
+        <p class="muted">Glow Up Queen bewaakt consistentie; je contentproject doet het denkwerk.</p>
+      </div>`;
+  }
+
+  if (type === "mind") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Queen Mind</h3>
+        ${checkRow("read", "30 minuten lezen")}
+        ${checkRow("learn", "Zelfontwikkeling / iets geleerd")}
+      </div>`;
+  }
+
+  if (type === "loa") {
+    const journal = D.journal[D.selected] || "";
+    const order = D.order[weekKey(D.selected)] || "";
+
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Journal</h3>
+        <textarea id="j" placeholder="Schrijf of dicteer…">${journal}</textarea>
+        <button class="link" id="jd">🎙️ Dicteer</button>
+        <button class="primary" id="js">Bewaar</button>
+      </div>
+      <div class="sub">
+        <h3>💌 Bestelling van de week</h3>
+        <textarea id="o" placeholder="Wat fijn dat deze week…">${order}</textarea>
+        <button class="primary" id="os">Bewaar bestelling</button>
+      </div>
+      <div class="sub">
+        <h3>Fysiek vision board</h3>
+        <input type="file" accept="image/*" id="v">
+        ${D.vision ? `<img class="photo" src="${D.vision}">` : ""}
+      </div>`;
+  }
+
+  if (type === "money") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Priorities</h3>
+        ${moneyInput("Roodstand", "overdraft")}
+        ${moneyInput("Creditcard", "creditcard")}
+        ${moneyInput("T-Roc aanbetaling", "car")}
+      </div>
+      <div class="sub">
+        <h3>This week's money move</h3>
+        ${checkRow("moneyaction", "Eén concrete money action")}
+      </div>`;
+  }
+
+  if (type === "family") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Today</h3>
+        ${checkRow("quality", "Quality time")}
+        ${checkRow("readchild", "Samen gelezen")}
+        ${checkRow("math", "Rekenen")}
+        ${checkRow("typing", "Typen")}
+        ${checkRow("familyroutine", "Gezinsroutine gevolgd")}
+      </div>
+      <div class="sub">
+        <h3>Monthly connection</h3>
+        <p>Plan iets met familie/vriendinnen. Beheer zelf wie relevant is — bijvoorbeeld Arizza, Meiwina en Marilva.</p>
+      </div>`;
+  }
+
+  if (type === "week") {
+    body.innerHTML = `
+      <div class="sub">
+        <h3>Sunday Reset</h3>
+        ${checkRow("weekgoals", "Weekdoelen")}
+        ${checkRow("order", "Bestelling van de week")}
+        ${checkRow("mealplan", "Kook- & leftoverdagen")}
+        ${checkRow("workouts", "Workouts")}
+        ${checkRow("childweek", "Weekplanning kind + huiswerk")}
+        ${checkRow("maintenance", "Maintenance check")}
+      </div>
+      <div class="sub">
+        <h3>Monthly Queen Letter</h3>
+        <p>Maanddoelen · money · relationships · leuke plannen · identity check-in · wat Queen Maya niet wil vergeten.</p>
+      </div>`;
+  }
+
+  if (type === "progress") {
+    const vals = Object.values(D.local).flatMap((x) => Object.values(x));
+    const pct = vals.length
+      ? Math.round((vals.filter(Boolean).length / vals.length) * 100)
+      : 0;
+
+    body.innerHTML = `
+      <div class="sub">
+        <h3>30-day view</h3>
+        <div class="meter"><span style="width:${pct}%"></span></div>
+        <p><b>${pct}%</b> van geregistreerde acties voltooid.</p>
+        <p>Body · drinks · sleep · reading · beauty · Out With It! · family · energy.</p>
+      </div>
+      <div class="sub">
+        <h3>Monthly identity check-in</h3>
+        <p>Waar sta ik? · Wie wil ik zijn? · Wat verandert er? · Welke actie hoort daarbij?</p>
+      </div>`;
+  }
+
+  bindModal(type);
+}
+
+function bindModal(type) {
+  $$("[data-l]").forEach((btn) => {
+    btn.onclick = () => {
+      toggleLocal(btn.dataset.l);
+      openModal(type);
+    };
+  });
+
+  $$("[data-m]").forEach((btn) => {
+    btn.onclick = () => {
+      D.beauty[btn.dataset.m] = D.selected;
+      save();
+      openModal(type);
+    };
+  });
+
+  $$("[data-d]").forEach((btn) => {
+    btn.onclick = () => {
+      const x = D.drinks[D.selected] || {
+        water: 0,
+        redbull: 0,
+        alcohol: 0,
+        cans: 0
+      };
+
+      if (btn.dataset.d === "water") x.water += 250;
+      else x[btn.dataset.d] += 1;
+
+      D.drinks[D.selected] = x;
+      save();
+      openModal(type);
+    };
+  });
+
+  const post = $("#post");
+  if (post) {
+    post.onclick = () => {
+      D.social[D.selected] = { posted: true };
+      save();
+      openModal(type);
+    };
+  }
+
+  const saveJournal = $("#js");
+  if (saveJournal) {
+    saveJournal.onclick = () => {
+      D.journal[D.selected] = $("#j").value;
+      save();
+      saveJournal.textContent = "✓ Bewaard";
+    };
+  }
+
+  const saveOrder = $("#os");
+  if (saveOrder) {
+    saveOrder.onclick = () => {
+      D.order[weekKey(D.selected)] = $("#o").value;
+      save();
+      saveOrder.textContent = "✓ Bewaard";
+    };
+  }
+
+  const journalDictate = $("#jd");
+  if (journalDictate) {
+    journalDictate.onclick = () => dictate($("#j"));
+  }
+
+  const vision = $("#v");
+  if (vision) {
+    vision.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        D.vision = reader.result;
+        save();
+        openModal(type);
+      };
+      reader.readAsDataURL(file);
+    };
+  }
+
+  $$("[data-money]").forEach((input) => {
+    input.onchange = () => {
+      D.money[input.dataset.money] = Number(input.value || 0);
+      save();
+    };
+  });
+}
+
+function bindOpenButtons() {
+  $$("[data-open]").forEach((btn) => {
+    btn.onclick = () => openModal(btn.dataset.open);
+  });
+}
+
+function dictate(el) {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!Recognition) {
+    alert("Gebruik de microfoon op je iPhone-toetsenbord voor voice-to-text.");
+    return;
+  }
+
+  const recognition = new Recognition();
+  recognition.lang = "nl-NL";
+  recognition.onresult = (e) => {
+    el.value += (el.value ? " " : "") + e.results[0][0].transcript;
+  };
+  recognition.start();
+}
+
+function planTomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const key = iso(d);
+  const current = D.tomorrow[key] || {};
+
+  const focus = prompt("Focus voor morgen:", current.focus || "");
+  if (focus === null) return;
+
+  const top = prompt(
+    "Top 3 — scheid met komma's:",
+    (current.top3 || []).join(", ")
+  );
+
+  D.tomorrow[key] = {
+    focus,
+    top3: (top || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean)
+  };
+
+  save();
+  alert("Morgen staat klaar, Queen Maya. 👑");
+}
+
+function addTask() {
+  const time = prompt("Tijd, bijv. 14:30:");
+  if (!time) return;
+
+  const text = prompt("Taak:");
+  if (!text) return;
+
+  tasks(D.selected).push({
+    id: "c" + Date.now(),
+    time,
+    text,
+    done: false
+  });
+
+  D.tasks[D.selected].sort((a, b) => a.time.localeCompare(b.time));
+  save();
+  render();
+}
+
+function coachReply() {
+  const q = $("#coachText").value.trim();
+  if (!q) return;
+
+  let reply = "Ik hoor je, Queen Maya. ";
+  const addMatch = q.match(/voeg (.+?) (dagelijks|elke dag) toe/i);
+
+  if (addMatch) {
+    D.custom.push({ name: addMatch[1], freq: "daily" });
+    save();
+    reply += `“${addMatch[1]}” is opgeslagen als custom tracker. De volledige tracker-editor volgt in de volgende bouwstap.`;
+  } else if (/wat moet ik nu/i.test(q)) {
+    const next = tasks(today()).find((x) => !x.done);
+    reply += next
+      ? `Je volgende open stap is ${next.time} — ${next.text}. Eén ding tegelijk.`
+      : "Je daglijst is rond. Queen Time.";
+  } else {
+    reply +=
+      "Deze gratis prototypeversie heeft nog geen echte AI-koppeling. Ik doe niet alsof She al live ChatGPT-antwoorden kan geven.";
+  }
+
+  $("#reply").textContent = reply;
+}
+
+function unlock() {
+  if (!D.pin) {
+    $("#msg").textContent = "Stel eerst een pincode in.";
+    return;
+  }
+
+  if ($("#pin").value !== D.pin) {
+    $("#msg").textContent = "Pincode klopt niet.";
+    return;
+  }
+
+  $("#lock").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#msg").textContent = "";
+  render();
+}
+
+$("#setPin").onclick = () => {
+  const p = prompt("Kies 4–8 cijfers:");
+
+  if (p && /^\d{4,8}$/.test(p)) {
+    D.pin = p;
+    save();
+    $("#msg").textContent = "Pincode opgeslagen. Vul hem hierboven in.";
+  } else if (p) {
+    $("#msg").textContent = "Gebruik 4–8 cijfers.";
+  }
+};
+
+$("#unlock").onclick = unlock;
+$("#pin").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") unlock();
+});
+
+$("#lockBtn").onclick = () => {
+  $("#app").classList.add("hidden");
+  $("#lock").classList.remove("hidden");
+  $("#pin").value = "";
+};
+
+$("#voice").onclick = () => $("#coach").classList.toggle("hidden");
+$("#dictate").onclick = () => dictate($("#coachText"));
+$("#ask").onclick = coachReply;
+$("#tomorrow").onclick = planTomorrow;
+$("#addTask").onclick = addTask;
+$("#close").onclick = () => $("#modal").classList.add("hidden");
+
+bindOpenButtons();
+
+if (!D.pin) {
+  $("#lockCopy").textContent = "Maak eerst je persoonlijke pincode.";
+}
+
+// Replace the old cached v2 files immediately.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
