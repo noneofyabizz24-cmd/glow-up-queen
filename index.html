@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#221528" />
+  <title>Glow Up Queen</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="lockScreen" class="lock-screen">
+    <div class="lock-card">
+      <div class="mini-crown">♛</div>
+      <h1>Glow Up Queen</h1>
+      <p>Jouw persoonlijke life OS</p>
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="Pincode" />
+      <button id="unlockBtn">Open mijn app</button>
+      <button id="setPinBtn" class="ghost">Pincode instellen / wijzigen</button>
+      <small>Alles blijft in deze versie lokaal op dit apparaat opgeslagen.</small>
+    </div>
+  </div>
+
+  <main id="app" class="app hidden">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">GLOW UP QUEEN</p>
+        <h1 id="greeting">Good morning, Queen.</h1>
+      </div>
+      <button id="lockBtn" class="icon-btn" aria-label="Vergrendel">⌁</button>
+    </header>
+
+    <section class="hero-card">
+      <div class="crown-wrap">
+        <div class="crown">♛</div>
+        <div class="meter"><span id="meterFill"></span></div>
+        <strong id="scoreText">0%</strong>
+      </div>
+      <div>
+        <p class="eyebrow">TODAY'S UPGRADE SCORE</p>
+        <h2>Maak de kroon compleet.</h2>
+        <p id="streakText">0 dagen streak</p>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="today">Vandaag</button>
+      <button class="tab" data-tab="week">Week</button>
+      <button class="tab" data-tab="progress">Voortgang</button>
+      <button class="tab" data-tab="money">Money</button>
+      <button class="tab" data-tab="more">Meer</button>
+    </nav>
+
+    <section id="today" class="panel active">
+      <div class="section-head">
+        <div><p class="eyebrow">TODAY</p><h2>Today's missions</h2></div>
+        <button id="resetToday" class="ghost">Reset</button>
+      </div>
+
+      <div id="missions" class="cards"></div>
+
+      <div class="editorial-card">
+        <p class="eyebrow">BODY</p>
+        <h3>Walk / Pilates</h3>
+        <p>Plak hieronder een YouTube-link van de workout die je vandaag wilt doen.</p>
+        <div class="row">
+          <input id="videoUrl" placeholder="https://www.youtube.com/watch?v=..." />
+          <button id="saveVideo">Opslaan</button>
+        </div>
+        <div id="videoFrame" class="video-placeholder">Nog geen workoutvideo gekozen.</div>
+      </div>
+
+      <div class="editorial-card">
+        <p class="eyebrow">TONIGHT'S RESET</p>
+        <h3>Close the house beautifully.</h3>
+        <div id="homeReset" class="check-grid"></div>
+      </div>
+    </section>
+
+    <section id="week" class="panel">
+      <p class="eyebrow">WEEK</p>
+      <h2>Vooruitblik & terugblik</h2>
+      <div class="editorial-card">
+        <label>Deze week wil ik dichter bij Maya 2.0 komen door...</label>
+        <textarea id="weekFocus" rows="4"></textarea>
+        <label>Waar ben ik trots op?</label>
+        <textarea id="weekWin" rows="4"></textarea>
+        <label>Wat kostte energie?</label>
+        <textarea id="weekDrain" rows="4"></textarea>
+        <button id="saveWeek">Week opslaan</button>
+      </div>
+    </section>
+
+    <section id="progress" class="panel">
+      <p class="eyebrow">PROGRESS</p>
+      <h2>30 dagen</h2>
+      <div class="stat-grid">
+        <div class="stat"><span id="daysDone">0</span><small>completed days</small></div>
+        <div class="stat"><span id="avgScore">0%</span><small>average score</small></div>
+        <div class="stat"><span id="bestStreak">0</span><small>best streak</small></div>
+      </div>
+      <div class="editorial-card">
+        <h3>Energie-log</h3>
+        <input id="energy" type="range" min="1" max="10" value="5" />
+        <p>Vandaag: <strong id="energyValue">5/10</strong></p>
+        <button id="saveEnergy">Opslaan</button>
+      </div>
+    </section>
+
+    <section id="money" class="panel">
+      <p class="eyebrow">MONEY</p>
+      <h2>Know where it goes.</h2>
+      <div class="editorial-card">
+        <div class="money-form">
+          <input id="moneyAmount" type="number" step="0.01" placeholder="Bedrag" />
+          <select id="moneyType"><option value="expense">Uitgave</option><option value="income">Inkomst</option></select>
+          <input id="moneyCategory" placeholder="Categorie" />
+          <button id="addMoney">Toevoegen</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span id="incomeTotal">€0</span><small>income</small></div>
+        <div class="stat"><span id="expenseTotal">€0</span><small>spent</small></div>
+        <div class="stat"><span id="balanceTotal">€0</span><small>balance</small></div>
+      </div>
+      <div id="moneyList" class="cards"></div>
+    </section>
+
+    <section id="more" class="panel">
+      <p class="eyebrow">LIFE AREAS</p>
+      <h2>Who is Maya becoming?</h2>
+      <div class="life-grid" id="lifeGrid"></div>
+    </section>
+
+    <footer>Glow Up Queen • personal edition</footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

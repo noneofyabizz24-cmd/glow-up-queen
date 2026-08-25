@@ -1,0 +1,9 @@
+{
+  "name": "Glow Up Queen",
+  "short_name": "Glow Queen",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5efe4",
+  "theme_color": "#211426",
+  "icons": []
+}
