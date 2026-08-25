@@ -1,5 +1,5 @@
 
-const CACHE = "guq-v2-1-fix-20260825";
+const CACHE = "guq-v2-2-fix-20260825";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

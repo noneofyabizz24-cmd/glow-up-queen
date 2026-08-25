@@ -19,7 +19,11 @@ const defaults = {
   beauty: { nails: "", pedicure: "", hair: "", brows: "" },
   money: { overdraft: 0, creditcard: 0, car: 0, carTarget: 5000 },
   vision: null,
-  custom: []
+  custom: [],
+  weekPlans: {},
+  monthly: {},
+  roomChecks: {},
+  workoutPlans: {}
 };
 
 let D;
@@ -188,7 +192,7 @@ function renderTimeline() {
           ${t.done ? "✓" : ""}
         </button>
         <div class="time">${t.time}</div>
-        <div class="txt">${t.text}</div>
+        <button class="txt taskedit" data-e="${t.id}">${t.text}</button>
       </div>`
     )
     .join("");
@@ -202,6 +206,8 @@ function renderTimeline() {
       render();
     };
   });
+
+  $$('[data-e]').forEach(btn=>{btn.onclick=()=>{const task=list.find(x=>x.id===btn.dataset.e);if(!task)return;const text=prompt("Taak aanpassen:",task.text);if(text===null)return;const time=prompt("Tijd aanpassen:",task.time);if(time===null)return;task.text=text;task.time=time;list.sort((a,b)=>a.time.localeCompare(b.time));save();render();};});
 
   const completed = list.filter((x) => x.done).length;
   const pct = list.length ? Math.round((completed / list.length) * 100) : 0;
@@ -299,18 +305,19 @@ function openModal(type) {
   const body = $("#mb");
 
   if (type === "home") {
+    const rooms = {
+      kitchen:["Aanrecht leeg + afnemen","Spoelbak leeg","Kookplaat afnemen","Vaat weg","Tafel leeg","Vloer quick reset"],
+      hall:["Schoenen/jassen recht","Losse spullen weg","Oppervlakken leeg","Vloer vrij"],
+      living:["Bank leeg + kussens recht","Tafel leeg","Vensterbank afnemen","Losse spullen terug","Vloer quick reset"],
+      bathroom:["Wastafel afnemen","Spiegel quick clean","Toilet schoon","Handdoeken recht","Vloer vrij"]
+    };
+    const roomCard=(key,title)=>`<div class="sub"><h3>${title}</h3>${rooms[key].map((x,i)=>checkRow(`room_${key}_${i}`,x)).join("")}</div>`;
     body.innerHTML = `
-      <div class="sub">
-        <h3>Every night</h3>
-        ${checkRow("kitchen", "Keuken reset")}
-        ${checkRow("hall", "Hal reset")}
-        ${checkRow("living", "Woonkamer reset")}
-      </div>
-      <div class="sub">
-        <h3>Extra zone</h3>
-        <p>${tasks(D.selected)[0].zone}</p>
-        <p class="muted">De concrete room-checklists worden hierna editable gemaakt.</p>
-      </div>`;
+      ${roomCard("kitchen","🍽️ Keuken reset")}
+      ${roomCard("hall","🚪 Hal reset")}
+      ${roomCard("living","🛋️ Woonkamer reset")}
+      ${new Date(D.selected+"T12:00:00").getDay()===2 ? roomCard("bathroom","🛁 Badkamer + toilet") : ""}
+      <div class="sub"><h3>Extra zone van vandaag</h3><p>${tasks(D.selected)[0].zone}</p></div>`;
   }
 
   if (type === "body") {
@@ -325,8 +332,9 @@ function openModal(type) {
         ${checkRow("homefood", "Thuis gegeten")}
       </div>
       <div class="sub">
-        <h3>Workout</h3>
-        <p>Dag-specifieke Tai Bo · Wall Pilates · core · squats.</p>
+        <h3>Workout van vandaag</h3>
+        <p><b>${D.workoutPlans[D.selected] || "Nog niet gepland"}</b></p>
+        <button class="link" id="editWorkout">Workout instellen / wijzigen</button>
       </div>`;
   }
 
@@ -374,26 +382,22 @@ function openModal(type) {
       </div>
       <div class="sub">
         <h3>Make-up Academy</h3>
-        <p>Base · brows · concealer · blush/contour · eyes · lips · everyday face.</p>
+        <p><b>Vandaag: Everyday face</b></p><ol><li>Hydrateer + SPF.</li><li>Dunne base alleen waar nodig.</li><li>Concealer onder ogen en op plekjes; zacht inkloppen.</li><li>Brows: onderlijn, bovenlijn licht, invullen, uitborstelen.</li><li>Blush op de wangen; contour subtiel onder jukbeen.</li><li>Mascara + verzorgde lip.</li></ol><p class="muted">Doel: leren terwijl je het doet — niet alleen een lijst met namen.</p>
       </div>`;
   }
 
   if (type === "etiquette") {
-    body.innerHTML = `
-      <div class="sub">
-        <p class="eyebrow">TODAY'S LESSON</p>
-        <h3>Quiet elegance</h3>
-        <p>Roer zonder je lepel tegen het kopje te tikken.</p>
-        ${checkRow("etiquette", "Vandaag geoefend")}
-      </div>
-      <div class="sub">
-        <h3>💕 Teach your little Queen too</h3>
-        <p>Oefen het samen tijdens een drankje.</p>
-      </div>
-      <div class="sub">
-        <h3>Academy</h3>
-        <p>Dining · hosting · conversation · business · dress codes · travel · presence.</p>
-      </div>`;
+    const lessons=[
+      ["Quiet tea","Roer rustig zonder je lepel tegen het kopje te tikken.","Laat je kind hetzelfde oefenen met een leeg of lauw kopje."],
+      ["Bestek","Na het eten leg je mes en vork samen op het bord; niet terug op tafel.","Maak er thuis een mini-spel van: klaar = bestek samen."],
+      ["Servet","Leg je servet op schoot zodra je zit. Dep je mond; veeg niet.","Laat je kind vóór de eerste hap haar servet op schoot leggen."],
+      ["Aan tafel","Breng het eten naar je mond in plaats van je hoofd naar je bord.","Oefen één maaltijd met rustig rechtop zitten."],
+      ["Gesprek","Stel een vervolgvraag voordat je het gesprek terug naar jezelf brengt.","Vraag: ‘En wat vond jij daarvan?’"],
+      ["Binnenkomen","Begroet eerst, kijk mensen aan en berg daarna pas telefoon of jas op.","Laat je kind zelf duidelijk goedemiddag zeggen."],
+      ["Hosting","Bied een gast eerst iets te drinken aan voordat jij voor jezelf inschenkt.","Laat je kind helpen een gast water aan te bieden."]
+    ];
+    const n=Math.floor(new Date(D.selected+"T12:00:00").getTime()/86400000)%lessons.length, L=lessons[(n+lessons.length)%lessons.length];
+    body.innerHTML = `<div class="sub"><p class="eyebrow">TODAY'S LESSON</p><h3>${L[0]}</h3><p>${L[1]}</p>${checkRow("etiquette", "Vandaag geoefend")}</div><div class="sub"><h3>💕 Teach your little Queen too</h3><p>${L[2]}</p></div><div class="sub"><h3>Queen Academy</h3><p>Iedere dag een andere mini-les uit dining · hosting · conversation · business · dress codes · travel · presence.</p></div>`;
   }
 
   if (type === "build") {
@@ -474,20 +478,17 @@ function openModal(type) {
   }
 
   if (type === "week") {
+    const wk=weekKey(D.selected), w=D.weekPlans[wk]||{};
     body.innerHTML = `
-      <div class="sub">
-        <h3>Sunday Reset</h3>
-        ${checkRow("weekgoals", "Weekdoelen")}
-        ${checkRow("order", "Bestelling van de week")}
-        ${checkRow("mealplan", "Kook- & leftoverdagen")}
-        ${checkRow("workouts", "Workouts")}
-        ${checkRow("childweek", "Weekplanning kind + huiswerk")}
-        ${checkRow("maintenance", "Maintenance check")}
+      <div class="sub"><h3>Sunday Reset — plan de week</h3>
+        <label><b>Weekdoelen</b></label><textarea id="wg" placeholder="Wat moet deze week echt lukken?">${w.goals||""}</textarea>
+        <label><b>💌 Bestelling van de week</b></label><textarea id="wo" placeholder="Wat fijn dat deze week…">${D.order[wk]||""}</textarea>
+        <label><b>Kook- & leftoverdagen</b></label><textarea id="wm" placeholder="Bijv. ma koken · di leftovers…">${w.meals||""}</textarea>
+        <label><b>Workouts</b></label><textarea id="ww" placeholder="Bijv. ma Tai Bo · wo Wall Pilates · vr Tai Bo">${w.workouts||""}</textarea>
+        <label><b>Weekplanning kind + huiswerk</b></label><textarea id="wc" placeholder="Rekenen · typen · taal · sport · klaarleggen">${w.child||""}</textarea>
+        <button class="primary" id="saveWeek">Bewaar mijn week</button>
       </div>
-      <div class="sub">
-        <h3>Monthly Queen Letter</h3>
-        <p>Maanddoelen · money · relationships · leuke plannen · identity check-in · wat Queen Maya niet wil vergeten.</p>
-      </div>`;
+      <div class="sub"><h3>Monthly Queen Letter</h3><button class="primary" id="openLetter">Open mijn maandbrief</button></div>`;
   }
 
   if (type === "progress") {
@@ -503,9 +504,9 @@ function openModal(type) {
         <p><b>${pct}%</b> van geregistreerde acties voltooid.</p>
         <p>Body · drinks · sleep · reading · beauty · Out With It! · family · energy.</p>
       </div>
-      <div class="sub">
-        <h3>Monthly identity check-in</h3>
-        <p>Waar sta ik? · Wie wil ik zijn? · Wat verandert er? · Welke actie hoort daarbij?</p>
+      <div class="sub"><h3>Monthly identity check-in</h3>
+        <textarea id="identity" placeholder="Waar sta ik? Wie wil ik zijn? Wat verandert er? Welke actie hoort daarbij?">${D.monthly[D.selected.slice(0,7)]?.identity||""}</textarea>
+        <button class="primary" id="saveIdentity">Bewaar check-in</button>
       </div>`;
   }
 
@@ -545,6 +546,16 @@ function bindModal(type) {
       openModal(type);
     };
   });
+
+  const editWorkout = $("#editWorkout");
+  if (editWorkout) editWorkout.onclick=()=>{ const x=prompt("Workout voor deze dag:",D.workoutPlans[D.selected]||""); if(x!==null){D.workoutPlans[D.selected]=x;save();openModal(type);} };
+
+  const saveWeek=$("#saveWeek");
+  if(saveWeek) saveWeek.onclick=()=>{const wk=weekKey(D.selected);D.weekPlans[wk]={goals:$("#wg").value,meals:$("#wm").value,workouts:$("#ww").value,child:$("#wc").value};D.order[wk]=$("#wo").value;save();saveWeek.textContent="✓ Week opgeslagen";};
+  const saveIdentity=$("#saveIdentity");
+  if(saveIdentity) saveIdentity.onclick=()=>{const m=D.selected.slice(0,7);D.monthly[m]=D.monthly[m]||{};D.monthly[m].identity=$("#identity").value;save();saveIdentity.textContent="✓ Bewaard";};
+  const openLetter=$("#openLetter");
+  if(openLetter) openLetter.onclick=()=>{const m=D.selected.slice(0,7);D.monthly[m]=D.monthly[m]||{};const old=D.monthly[m].letter||"";const x=prompt("Mijn Queen Letter — doelen, money, relaties, leuke plannen en wat ik niet wil vergeten:",old);if(x!==null){D.monthly[m].letter=x;save();openLetter.textContent="✓ Maandbrief opgeslagen";}};
 
   const post = $("#post");
   if (post) {
@@ -625,29 +636,14 @@ function dictate(el) {
 }
 
 function planTomorrow() {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  const key = iso(d);
-  const current = D.tomorrow[key] || {};
-
-  const focus = prompt("Focus voor morgen:", current.focus || "");
-  if (focus === null) return;
-
-  const top = prompt(
-    "Top 3 — scheid met komma's:",
-    (current.top3 || []).join(", ")
-  );
-
-  D.tomorrow[key] = {
-    focus,
-    top3: (top || "")
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean)
-  };
-
-  save();
-  alert("Morgen staat klaar, Queen Maya. 👑");
+  const d = new Date(); d.setDate(d.getDate()+1); const key=iso(d); const current=D.tomorrow[key]||{};
+  const focus=prompt("Focus voor morgen:",current.focus||""); if(focus===null)return;
+  const top=prompt("Top 3 — scheid met komma's:",(current.top3||[]).join(", ")); if(top===null)return;
+  const plan=prompt("Planning morgen — schrijf per regel TIJD taak, bijv. 09:00 Kapper:",(current.plan||[]).map(x=>x.time+" "+x.text).join("\n")); if(plan===null)return;
+  const parsed=plan.split(/\n/).map(x=>x.trim()).filter(Boolean).map((line,i)=>{const m=line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);return m?{id:"p"+i,time:m[1],text:m[2],done:false}:null}).filter(Boolean);
+  D.tomorrow[key]={focus,top3:(top||"").split(",").map(x=>x.trim()).filter(Boolean),plan:parsed};
+  if(parsed.length) D.tasks[key]=parsed;
+  save(); alert("Morgen is écht gepland, Queen Maya. 👑");
 }
 
 function addTask() {
